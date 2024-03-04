@@ -277,6 +277,26 @@ export const audioMessageSchema: JSONSchema7 = {
   required: ['audioMessage', 'number'],
 };
 
+export const templateMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema },
+    templateMessage: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        language: { type: 'string' },
+        components: { type: 'array' },
+      },
+      required: ['name', 'language'],
+      ...isNotEmpty('name', 'language'),
+    },
+  },
+  required: ['templateMessage', 'number'],
+};
+
 export const buttonMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -517,6 +537,17 @@ export const privacySettingsSchema: JSONSchema7 = {
     },
   },
   required: ['privacySettings'],
+};
+
+export const blockUserSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { type: 'string' },
+    status: { type: 'string', enum: ['block', 'unblock'] },
+  },
+  required: ['number', 'status'],
+  ...isNotEmpty('number', 'status'),
 };
 
 export const archiveChatSchema: JSONSchema7 = {
