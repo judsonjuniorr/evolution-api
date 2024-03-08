@@ -191,6 +191,7 @@ export interface Env {
   WA_BUSINESS: WaBusiness;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
+  DEL_TEMP_INSTANCES: boolean;
   LANGUAGE: Language;
   WEBHOOK: Webhook;
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
@@ -321,6 +322,9 @@ export class ConfigService {
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
+      DEL_TEMP_INSTANCES: isBooleanString(process.env?.DEL_TEMP_INSTANCES)
+        ? process.env.DEL_TEMP_INSTANCES === 'true'
+        : true,
       LANGUAGE: process.env?.LANGUAGE || 'en',
       WEBHOOK: {
         GLOBAL: {

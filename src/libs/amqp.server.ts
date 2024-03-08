@@ -200,11 +200,13 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     durable: true,
     autoDelete: false,
   });
+
   let queueName = event;
   if (rabbitMode === 'single') {
     queueName = 'evolution';
   } else if (rabbitMode === 'global') {
     let eventName = '';
+
     Object.keys(globalQueues).forEach((key) => {
       if (globalQueues[key].includes(event as Events)) {
         eventName = key;
@@ -223,12 +225,14 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     autoDelete: false,
     arguments: { 'x-queue-type': 'quorum' },
   });
+
   amqpChannel.bindQueue(queueName, exchangeName, event);
 
   const serverUrl = configService.get<HttpServer>('SERVER').URL;
   const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
   const localISOTime = new Date(Date.now() - tzoffset).toISOString();
   const now = localISOTime;
+
   const message = {
     event,
     instance: instanceName,
@@ -237,9 +241,11 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     date_time: now,
     sender: wuid,
   };
+
   if (apiKey) {
     message['apikey'] = apiKey;
   }
+
   logger.log({
     queueName,
     exchangeName,
