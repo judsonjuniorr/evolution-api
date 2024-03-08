@@ -40,7 +40,7 @@ export const initAMQP = () => {
           return;
         }
 
-        channel.assertExchange(rabbitConfig.EXCHANGE_NAME, 'topic', {
+        channel.assertExchange(rabbitConfig.EXCHANGE_NAME || 'evolution_exchange', 'topic', {
           durable: true,
           autoDelete: false,
         });
@@ -64,10 +64,11 @@ export const initQueues = (instanceName: string, events: string[]) => {
   const TWO_DAYS_IN_MS = 2 * 24 * 60 * 60 * 1000;
   const amqp = getAMQP();
 
-  let exchangeName = rabbitConfig.EXCHANGE_NAME;
+  const rabbitMode = rabbitConfig.MODE || 'isolated';
+  let exchangeName = rabbitConfig.EXCHANGE_NAME || 'evolution_exchange';
 
   const receivedEvents = events.map(parseEvtName);
-  if (rabbitConfig.MODE === 'isolated') {
+  if (rabbitMode === 'isolated') {
     exchangeName = instanceName;
 
     receivedEvents.forEach((event) => {
@@ -88,7 +89,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
 
       amqp.bindQueue(queueName, exchangeName, event);
     });
-  } else if (rabbitConfig.MODE === 'single') {
+  } else if (rabbitMode === 'single') {
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
       autoDelete: false,
@@ -107,7 +108,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
     receivedEvents.forEach((event) => {
       amqp.bindQueue(queueName, exchangeName, event);
     });
-  } else if (rabbitConfig.MODE === 'global') {
+  } else if (rabbitMode === 'global') {
     const queues = Object.keys(globalQueues);
 
     const addQueues = queues.filter((evt) => {
@@ -161,11 +162,12 @@ export const initQueues = (instanceName: string, events: string[]) => {
 export const removeQueues = (instanceName: string, events: string[]) => {
   if (!events || !events.length) return;
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-  let exchangeName = rabbitConfig.EXCHANGE_NAME;
+  const rabbitMode = rabbitConfig.MODE || 'isolated';
+  let exchangeName = rabbitConfig.EXCHANGE_NAME || 'evolution_exchange';
   const amqp = getAMQP();
 
   const receivedEvents = events.map(parseEvtName);
-  if (rabbitConfig.MODE === 'isolated') {
+  if (rabbitMode === 'isolated') {
     exchangeName = instanceName;
     receivedEvents.forEach((event) => {
       amqp.assertExchange(exchangeName, 'topic', {
@@ -190,17 +192,18 @@ interface SendEventData {
 
 export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-  let exchangeName = rabbitConfig.EXCHANGE_NAME;
-  if (rabbitConfig.MODE === 'isolated') exchangeName = instanceName;
+  let exchangeName = rabbitConfig.EXCHANGE_NAME || 'evolution_exchange';
+  const rabbitMode = rabbitConfig.MODE || 'isolated';
+  if (rabbitMode === 'isolated') exchangeName = instanceName;
 
   amqpChannel.assertExchange(exchangeName, 'topic', {
     durable: true,
     autoDelete: false,
   });
   let queueName = event;
-  if (rabbitConfig.MODE === 'single') {
+  if (rabbitMode === 'single') {
     queueName = 'evolution';
-  } else if (rabbitConfig.MODE === 'global') {
+  } else if (rabbitMode === 'global') {
     let eventName = '';
     Object.keys(globalQueues).forEach((key) => {
       if (globalQueues[key].includes(event as Events)) {
@@ -211,7 +214,10 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
       }
     });
     queueName = eventName;
+  } else if (rabbitMode === 'isolated') {
+    queueName = `${instanceName}.${event}`;
   }
+
   amqpChannel.assertQueue(queueName, {
     durable: true,
     autoDelete: false,
