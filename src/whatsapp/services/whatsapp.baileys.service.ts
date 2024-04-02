@@ -41,7 +41,6 @@ import axios from 'axios';
 import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import levenshtein from 'fast-levenshtein';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
@@ -90,7 +89,7 @@ import {
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
 } from '../dto/group.dto';
-import { InstanceDto } from '../dto/instance.dto';
+import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { HandleLabelDto, LabelDto } from '../dto/label.dto';
 import {
   ContactMessage,
@@ -473,7 +472,7 @@ export class BaileysStartupService extends WAStartupService {
       if (this.localProxy.enabled) {
         this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
 
-        if (this.localProxy.proxy.host.includes('proxyscrape')) {
+        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
             const response = await axios.get(this.localProxy.proxy.host);
             const text = response.data;
@@ -939,6 +938,17 @@ export class BaileysStartupService extends WAStartupService {
         this.logger.verbose('Event received: messages.upsert');
         for (const received of messages) {
           if (
+            this.localChatwoot.enabled &&
+            (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message)
+          ) {
+            const editedMessage =
+              received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
+            if (editedMessage) {
+              this.chatwootService.eventWhatsapp('messages.edit', { instanceName: this.instance.name }, editedMessage);
+            }
+          }
+
+          if (
             (type !== 'notify' && type !== 'append') ||
             received.message?.protocolMessage ||
             received.message?.pollUpdateMessage
@@ -965,7 +975,7 @@ export class BaileysStartupService extends WAStartupService {
             received?.message?.documentMessage ||
             received?.message?.audioMessage;
 
-          const contentMsg = received.message[getContentType(received.message)] as any;
+          const contentMsg = received?.message[getContentType(received.message)] as any;
 
           if (this.localWebhook.webhook_base64 === true && isMedia) {
             const buffer = await downloadMediaMessage(
@@ -1124,7 +1134,7 @@ export class BaileysStartupService extends WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        if (settings?.groups_ignore && key.remoteJid.includes('@g.us')) {
+        if (settings?.groups_ignore && key.remoteJid?.includes('@g.us')) {
           this.logger.verbose('group ignored');
           return;
         }
@@ -1820,7 +1830,6 @@ export class BaileysStartupService extends WAStartupService {
   }
 
   // Instance Controller
-
   public async sendPresence(data: SendPresenceDto) {
     try {
       const { number } = data;
@@ -1847,6 +1856,17 @@ export class BaileysStartupService extends WAStartupService {
 
       await this.client.sendPresenceUpdate('paused', sender);
       this.logger.verbose('Sending presence update: paused');
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // Presence Controller
+  public async setPresence(data: SetPresenceDto) {
+    try {
+      await this.client.sendPresenceUpdate(data.presence);
+      this.logger.verbose('Sending presence update: ' + data.presence);
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
@@ -2455,24 +2475,58 @@ export class BaileysStartupService extends WAStartupService {
       owner: this.instance.name,
       ids: jids.users.map(({ jid }) => (jid.startsWith('+') ? jid.substring(1) : jid)),
     });
-    const verify = await this.client.onWhatsApp(
-      ...jids.users.map(({ jid }) => (!jid.startsWith('+') ? `+${jid}` : jid)),
-    );
+    const numbersToVerify = jids.users.map(({ jid }) => jid.replace('+', ''));
+    const verify = await this.client.onWhatsApp(...numbersToVerify);
     const users: OnWhatsAppDto[] = await Promise.all(
       jids.users.map(async (user) => {
-        const MAX_SIMILARITY_THRESHOLD = 0.01;
-        const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
-        const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
+        let numberVerified: (typeof verify)[0] | null = null;
 
-        const numberVerified = verify.find((v) => {
-          const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
-          const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
-          return mainJidSimilarity <= MAX_SIMILARITY_THRESHOLD || jidSimilarity <= MAX_SIMILARITY_THRESHOLD;
-        });
+        // Brazilian numbers
+        if (user.number.startsWith('55')) {
+          const numberWithDigit =
+            user.number.slice(4, 5) === '9' && user.number.length === 13
+              ? user.number
+              : `${user.number.slice(0, 4)}9${user.number.slice(4)}`;
+          const numberWithoutDigit =
+            user.number.length === 12 ? user.number : user.number.slice(0, 4) + user.number.slice(5);
+
+          numberVerified = verify.find(
+            (v) => v.jid === `${numberWithDigit}@s.whatsapp.net` || v.jid === `${numberWithoutDigit}@s.whatsapp.net`,
+          );
+        }
+
+        // Mexican/Argentina numbers
+        // Ref: https://faq.whatsapp.com/1294841057948784
+        if (!numberVerified && (user.number.startsWith('52') || user.number.startsWith('54'))) {
+          let prefix = '';
+          if (user.number.startsWith('52')) {
+            prefix = '1';
+          }
+          if (user.number.startsWith('54')) {
+            prefix = '9';
+          }
+
+          const numberWithDigit =
+            user.number.slice(2, 3) === prefix && user.number.length === 13
+              ? user.number
+              : `${user.number.slice(0, 2)}${prefix}${user.number.slice(2)}`;
+          const numberWithoutDigit =
+            user.number.length === 12 ? user.number : user.number.slice(0, 2) + user.number.slice(3);
+
+          numberVerified = verify.find(
+            (v) => v.jid === `${numberWithDigit}@s.whatsapp.net` || v.jid === `${numberWithoutDigit}@s.whatsapp.net`,
+          );
+        }
+
+        if (!numberVerified) {
+          numberVerified = verify.find((v) => v.jid === user.jid);
+        }
+
+        const numberJid = numberVerified?.jid || user.jid;
         return {
           exists: !!numberVerified?.exists,
-          jid: numberVerified?.jid || user.jid,
-          name: contacts.find((c) => c.id === jid)?.pushName,
+          jid: numberJid,
+          name: contacts.find((c) => c.id === numberJid)?.pushName,
           number: user.number,
         };
       }),

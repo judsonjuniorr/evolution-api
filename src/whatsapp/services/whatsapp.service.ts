@@ -20,7 +20,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { getAMQP, removeQueues, sendEventData } from '../../libs/amqp.server';
+import { getAMQP, removeQueues } from '../../libs/amqp.server';
 import { getIO } from '../../libs/socket.server';
 import { getSQS, removeQueues as removeQueuesSQS } from '../../libs/sqs.server';
 import { ChamaaiRaw, IntegrationRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, SqsRaw, TypebotRaw } from '../models';
@@ -663,6 +663,18 @@ export class WAStartupService {
     };
   }
 
+  private assertExchangeAsync = (channel, exchangeName, exchangeType, options) => {
+    return new Promise((resolve, reject) => {
+      channel.assertExchange(exchangeName, exchangeType, options, (error, ok) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(ok);
+        }
+      });
+    });
+  };
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
@@ -685,13 +697,44 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          sendEventData({
-            data,
-            event,
-            instanceName: this.instanceName,
-            wuid: this.wuid,
-            apiKey: expose && instanceApikey ? instanceApikey : undefined,
+          const exchangeName = this.instanceName ?? 'evolution_exchange';
+
+          // await amqp.assertExchange(exchangeName, 'topic', {
+          //   durable: true,
+          //   autoDelete: false,
+          // });
+
+          await this.assertExchangeAsync(amqp, exchangeName, 'topic', {
+            durable: true,
+            autoDelete: false,
           });
+
+          const queueName = `${this.instanceName}.${event}`;
+
+          await amqp.assertQueue(queueName, {
+            durable: true,
+            autoDelete: false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
+
+          await amqp.bindQueue(queueName, exchangeName, event);
+
+          const message = {
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            message['apikey'] = instanceApikey;
+          }
+
+          await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
 
           if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
             const logData = {

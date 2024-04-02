@@ -303,7 +303,6 @@ export class BusinessStartupService extends WAStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
-        console.log('received?.messages[0]', received?.messages[0]);
         const key = {
           id: received.messages[0].id,
           remoteJid: this.phoneNumber,
@@ -772,9 +771,6 @@ export class BusinessStartupService extends WAStartupService {
         }
       })();
 
-      console.log('messageSent', messageSent);
-      console.log('message', message);
-
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
@@ -1187,6 +1183,9 @@ export class BusinessStartupService extends WAStartupService {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async sendPresence() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
+  public async setPresence() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchPrivacySettings() {
