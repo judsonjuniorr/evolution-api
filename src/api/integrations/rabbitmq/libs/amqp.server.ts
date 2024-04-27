@@ -70,30 +70,28 @@ export const initQueues = (instanceName: string, events: string[]) => {
     exchangeName = instanceName;
 
     receivedEvents.forEach((event) => {
-      amqp.assertExchange(exchangeName, 'topic', {
+      amqpChannel.assertExchange(exchangeName, 'topic', {
         durable: true,
         autoDelete: false,
       });
 
       const queueName = `${instanceName}.${event}`;
-      amqp.assertQueue(queueName, {
+      amqpChannel.assertQueue(queueName, {
         durable: true,
         autoDelete: false,
-        arguments: {
-          'x-queue-type': 'quorum',
-        },
+        arguments: { 'x-queue-type': 'quorum' },
       });
 
-      amqp.bindQueue(queueName, exchangeName, event);
+      amqpChannel.bindQueue(queueName, exchangeName, event);
     });
   } else if (rabbitMode === 'single') {
-    amqp.assertExchange(exchangeName, 'topic', {
+    amqpChannel.assertExchange(exchangeName, 'topic', {
       durable: true,
       autoDelete: false,
     });
 
     const queueName = 'evolution';
-    amqp.assertQueue(queueName, {
+    amqpChannel.assertQueue(queueName, {
       durable: true,
       autoDelete: false,
       arguments: {
@@ -102,7 +100,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
     });
 
     receivedEvents.forEach((event) => {
-      amqp.bindQueue(queueName, exchangeName, event);
+      amqpChannel.bindQueue(queueName, exchangeName, event);
     });
   } else if (rabbitMode === 'global') {
     const queues = Object.keys(globalQueues);
@@ -120,13 +118,13 @@ export const initQueues = (instanceName: string, events: string[]) => {
     });
 
     addQueues.forEach((event) => {
-      amqp.assertExchange(exchangeName, 'topic', {
+      amqpChannel.assertExchange(exchangeName, 'topic', {
         durable: true,
         autoDelete: false,
       });
 
       const queueName = event;
-      amqp.assertQueue(queueName, {
+      amqpChannel.assertQueue(queueName, {
         durable: true,
         autoDelete: false,
         arguments: {
@@ -141,11 +139,11 @@ export const initQueues = (instanceName: string, events: string[]) => {
           const eventCode = Events[subEvent];
           if (otherEvents.includes(eventCode)) continue;
           if (!receivedEvents.includes(eventCode)) continue;
-          amqp.bindQueue(queueName, exchangeName, eventCode);
+          amqpChannel.bindQueue(queueName, exchangeName, eventCode);
         }
       } else {
         globalQueues[event].forEach((subEvent) => {
-          amqp.bindQueue(queueName, exchangeName, subEvent);
+          amqpChannel.bindQueue(queueName, exchangeName, subEvent);
         });
       }
     });
@@ -161,21 +159,19 @@ export const removeQueues = (instanceName: string, events: string[]) => {
   const rabbitMode = rabbitConfig.MODE || 'isolated';
   let exchangeName = rabbitConfig.EXCHANGE_NAME || 'evolution_exchange';
 
-  const channel = getAMQP();
-
   const receivedEvents = events.map(parseEvtName);
   if (rabbitMode === 'isolated') {
     exchangeName = instanceName;
     receivedEvents.forEach((event) => {
-      channel.assertExchange(exchangeName, 'topic', {
+      amqpChannel.assertExchange(exchangeName, 'topic', {
         durable: true,
         autoDelete: false,
       });
 
       const queueName = `${instanceName}.${event}`;
-      channel.deleteQueue(queueName);
+      amqpChannel.deleteQueue(queueName);
     });
-    channel.deleteExchange(instanceName);
+    amqpChannel.deleteExchange(instanceName);
   }
 };
 
@@ -187,7 +183,7 @@ interface SendEventData {
   data: any;
 }
 
-export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
+export const sendEventData = async ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
   let exchangeName = rabbitConfig.EXCHANGE_NAME || 'evolution_exchange';
   const rabbitMode = rabbitConfig.MODE || 'isolated';
@@ -217,13 +213,14 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     queueName = `${instanceName}.${event}`;
   }
 
-  amqpChannel.assertQueue(queueName, {
-    durable: true,
-    autoDelete: false,
-    arguments: { 'x-queue-type': 'quorum' },
-  });
-
-  amqpChannel.bindQueue(queueName, exchangeName, event);
+  if (rabbitMode !== 'global') {
+    amqpChannel.assertQueue(queueName, {
+      durable: true,
+      autoDelete: false,
+      arguments: { 'x-queue-type': 'quorum' },
+    });
+    amqpChannel.bindQueue(queueName, exchangeName, event);
+  }
 
   const serverUrl = configService.get<HttpServer>('SERVER').URL;
   const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
@@ -248,5 +245,5 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     exchangeName,
     event,
   });
-  amqpChannel.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+  await amqpChannel.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
 };
