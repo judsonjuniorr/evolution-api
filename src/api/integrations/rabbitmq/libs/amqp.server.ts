@@ -213,14 +213,12 @@ export const sendEventData = async ({ data, event, wuid, apiKey, instanceName }:
     queueName = `${instanceName}.${event}`;
   }
 
-  if (rabbitMode !== 'global') {
-    amqpChannel.assertQueue(queueName, {
-      durable: true,
-      autoDelete: false,
-      arguments: { 'x-queue-type': 'quorum' },
-    });
-    amqpChannel.bindQueue(queueName, exchangeName, event);
-  }
+  amqpChannel.assertQueue(queueName, {
+    durable: true,
+    autoDelete: false,
+    arguments: { 'x-queue-type': 'quorum' },
+  });
+  amqpChannel.bindQueue(queueName, exchangeName, event);
 
   const serverUrl = configService.get<HttpServer>('SERVER').URL;
   const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
