@@ -11,7 +11,6 @@ import makeWASocket, {
   delay,
   DisconnectReason,
   downloadMediaMessage,
-  fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   getContentType,
@@ -495,7 +494,8 @@ export class BaileysStartupService extends ChannelStartupService {
         this.mobile = mobile;
       }
 
-      const { version } = await fetchLatestBaileysVersion();
+      // const { version } = await fetchLatestBaileysVersion();
+      const version = [2, 2413, 1];
 
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
@@ -670,7 +670,8 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       this.instance.authState = await this.defineAuthState();
 
-      const { version } = await fetchLatestBaileysVersion();
+      // const { version } = await fetchLatestBaileysVersion();
+      const version = [2, 2413, 1];
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
