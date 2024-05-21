@@ -11,7 +11,6 @@ import makeWASocket, {
   delay,
   DisconnectReason,
   downloadMediaMessage,
-  fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   getContentType,
@@ -1017,7 +1016,7 @@ export class BaileysStartupService extends ChannelStartupService {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
 
-          if (m.messageTimestamp <= timestampLimitToImport) {
+          if (Number(m.messageTimestamp) <= timestampLimitToImport) {
             continue;
           }
 

@@ -228,8 +228,8 @@ export class ChatwootService {
         '123456',
         inboxId,
         false,
-        'EvolutionAPI',
-        'https://evolution-api.com/files/evolution-api-favicon.png',
+        'KN Leads',
+        'https://files.knleads.com/favicon.jpg',
       )) as any);
 
     if (!contact) {
