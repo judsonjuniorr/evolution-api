@@ -11,6 +11,7 @@ import makeWASocket, {
   delay,
   DisconnectReason,
   downloadMediaMessage,
+  fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   getContentType,
