@@ -70,42 +70,11 @@ export type Database = {
   SAVE_DATA: SaveData;
 };
 
-export type EventsRabbitmq = {
-  APPLICATION_STARTUP: boolean;
-  INSTANCE_CREATE: boolean;
-  INSTANCE_DELETE: boolean;
-  QRCODE_UPDATED: boolean;
-  MESSAGES_SET: boolean;
-  MESSAGES_UPSERT: boolean;
-  MESSAGES_UPDATE: boolean;
-  MESSAGES_DELETE: boolean;
-  SEND_MESSAGE: boolean;
-  CONTACTS_SET: boolean;
-  CONTACTS_UPDATE: boolean;
-  CONTACTS_UPSERT: boolean;
-  PRESENCE_UPDATE: boolean;
-  CHATS_SET: boolean;
-  CHATS_UPDATE: boolean;
-  CHATS_DELETE: boolean;
-  CHATS_UPSERT: boolean;
-  CONNECTION_UPDATE: boolean;
-  LABELS_EDIT: boolean;
-  LABELS_ASSOCIATION: boolean;
-  GROUPS_UPSERT: boolean;
-  GROUP_UPDATE: boolean;
-  GROUP_PARTICIPANTS_UPDATE: boolean;
-  CALL: boolean;
-  NEW_JWT_TOKEN: boolean;
-  TYPEBOT_START: boolean;
-  TYPEBOT_CHANGE_STATUS: boolean;
-};
-
 export type Rabbitmq = {
   ENABLED: boolean;
+  MODE: string; // global, single, isolated
+  EXCHANGE_NAME: string; // available for global and single, isolated mode will use instance name as exchange
   URI: string;
-  EXCHANGE_NAME: string;
-  GLOBAL_ENABLED: boolean;
-  EVENTS: EventsRabbitmq;
 };
 
 export type Sqs = {
