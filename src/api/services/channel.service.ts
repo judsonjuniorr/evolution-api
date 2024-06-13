@@ -694,8 +694,6 @@ export class ChannelStartupService {
     const sqsLocal = this.localSqs.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const rabbitmqEnabled = this.configService.get<Rabbitmq>('RABBITMQ').ENABLED;
-    const rabbitmqGlobal = this.configService.get<Rabbitmq>('RABBITMQ').GLOBAL_ENABLED;
-    const rabbitmqEvents = this.configService.get<Rabbitmq>('RABBITMQ').EVENTS;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
