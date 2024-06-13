@@ -6,7 +6,7 @@ import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
 
-import { initAMQP, initGlobalQueues } from './api/integrations/rabbitmq/libs/amqp.server';
+import { initAMQP } from './api/integrations/rabbitmq/libs/amqp.server';
 import { initSQS } from './api/integrations/sqs/libs/sqs.server';
 import { initIO } from './api/integrations/websocket/libs/socket.server';
 import { ProviderFiles } from './api/provider/sessions';
