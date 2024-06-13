@@ -137,11 +137,7 @@ async function bootstrap() {
 
   initIO(server);
 
-  if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
-    initAMQP().then(() => {
-      if (configService.get<Rabbitmq>('RABBITMQ')?.GLOBAL_ENABLED) initGlobalQueues();
-    });
-  }
+  if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) initAMQP();
 
   if (configService.get<Sqs>('SQS')?.ENABLED) initSQS();
 
