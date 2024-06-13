@@ -1060,7 +1060,7 @@ export class BaileysStartupService extends ChannelStartupService {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
 
-          if (m.messageTimestamp <= timestampLimitToImport) {
+          if (Number(m.messageTimestamp) <= timestampLimitToImport) {
             continue;
           }
 

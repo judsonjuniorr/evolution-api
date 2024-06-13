@@ -24,7 +24,7 @@ import { NotFoundException } from '../../exceptions';
 import { ChamaaiService } from '../integrations/chamaai/services/chamaai.service';
 import { ChatwootRaw } from '../integrations/chatwoot/models/chatwoot.model';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
-import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
+import { getAMQP, removeQueues, sendEventData } from '../integrations/rabbitmq/libs/amqp.server';
 import { getSQS, removeQueues as removeQueuesSQS } from '../integrations/sqs/libs/sqs.server';
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { getIO } from '../integrations/websocket/libs/socket.server';
@@ -710,130 +710,31 @@ export class ChannelStartupService {
       const amqp = getAMQP();
       if (this.localRabbitmq.enabled && amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          const exchangeName = this.instanceName ?? 'evolution_exchange';
+          sendEventData({
+            data,
+            event,
+            instanceName: this.instanceName,
+            wuid: this.wuid,
+            apiKey: expose && instanceApikey ? instanceApikey : undefined,
+          });
 
-          let retry = 0;
-
-          while (retry < 3) {
-            try {
-              await amqp.assertExchange(exchangeName, 'topic', {
-                durable: true,
-                autoDelete: false,
-              });
-
-              const queueName = `${this.instanceName}.${event}`;
-
-              await amqp.assertQueue(queueName, {
-                durable: true,
-                autoDelete: false,
-                arguments: {
-                  'x-queue-type': 'quorum',
-                },
-              });
-
-              await amqp.bindQueue(queueName, exchangeName, event);
-
-              const message = {
-                event,
-                instance: this.instance.name,
-                data,
-                server_url: serverUrl,
-                date_time: now,
-                sender: this.wuid,
-              };
-
-              if (expose && instanceApikey) {
-                message['apikey'] = instanceApikey;
-              }
-
-              await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
-
-              if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-                const logData = {
-                  local: ChannelStartupService.name + '.sendData-RabbitMQ',
-                  event,
-                  instance: this.instance.name,
-                  data,
-                  server_url: serverUrl,
-                  apikey: (expose && instanceApikey) || null,
-                  date_time: now,
-                  sender: this.wuid,
-                };
-
-                if (expose && instanceApikey) {
-                  logData['apikey'] = instanceApikey;
-                }
-
-                this.logger.log(logData);
-              }
-              break;
-            } catch (error) {
-              retry++;
-            }
-          }
-        }
-      }
-
-      if (rabbitmqGlobal && rabbitmqEvents[we] && amqp) {
-        const exchangeName = 'evolution_exchange';
-
-        let retry = 0;
-
-        while (retry < 3) {
-          try {
-            await amqp.assertExchange(exchangeName, 'topic', {
-              durable: true,
-              autoDelete: false,
-            });
-
-            const queueName = transformedWe;
-
-            await amqp.assertQueue(queueName, {
-              durable: true,
-              autoDelete: false,
-              arguments: {
-                'x-queue-type': 'quorum',
-              },
-            });
-
-            await amqp.bindQueue(queueName, exchangeName, event);
-
-            const message = {
+          if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+            const logData = {
+              local: ChannelStartupService.name + '.sendData-RabbitMQ',
               event,
               instance: this.instance.name,
               data,
               server_url: serverUrl,
+              apikey: (expose && instanceApikey) || null,
               date_time: now,
               sender: this.wuid,
             };
 
             if (expose && instanceApikey) {
-              message['apikey'] = instanceApikey;
-            }
-            await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
-
-            if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-              const logData = {
-                local: ChannelStartupService.name + '.sendData-RabbitMQ-Global',
-                event,
-                instance: this.instance.name,
-                data,
-                server_url: serverUrl,
-                apikey: (expose && instanceApikey) || null,
-                date_time: now,
-                sender: this.wuid,
-              };
-
-              if (expose && instanceApikey) {
-                logData['apikey'] = instanceApikey;
-              }
-
-              this.logger.log(logData);
+              logData['apikey'] = instanceApikey;
             }
 
-            break;
-          } catch (error) {
-            retry++;
+            this.logger.log(logData);
           }
         }
       }
