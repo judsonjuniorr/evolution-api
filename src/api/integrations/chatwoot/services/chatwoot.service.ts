@@ -1193,7 +1193,13 @@ export class ChatwootService {
       ) {
         if (body.event === 'message_created' && messageReceived.trim().toLowerCase() === '/stopbot') {
           this.logger.verbose('command stopbot found');
-          const typebot = await waInstance.findTypebot();
+
+          const typebot: Awaited<ReturnType<typeof waInstance.findTypebot>> | null = await new Promise((resolve) => {
+            waInstance
+              .findTypebot()
+              .then(resolve)
+              .catch(() => resolve(null));
+          });
           if (!typebot || !typebot.enabled) {
             await this.createBotMessage(
               instance,
