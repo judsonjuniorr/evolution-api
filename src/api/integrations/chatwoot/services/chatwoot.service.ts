@@ -861,17 +861,20 @@ export class ChatwootService {
       return null;
     }
 
-    const conversation = await this.getOpenConversationByContact(instance, filterInbox, contact);
+    if (!conversationId) {
+      const conversation = await this.getOpenConversationByContact(instance, filterInbox, contact);
 
-    if (!conversation) {
-      this.logger.warn('conversation not found');
-      return;
+      if (!conversation) {
+        this.logger.warn('conversation not found');
+        return;
+      }
+      conversationId = conversation.id;
     }
 
     this.logger.verbose('create message in chatwoot');
     const message = await client.messages.create({
       accountId: this.provider.account_id,
-      conversationId: conversationId ?? conversation.id,
+      conversationId: conversationId,
       data: {
         private: isPrivateMessage || false,
         content: content,
