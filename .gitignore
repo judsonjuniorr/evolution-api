@@ -48,3 +48,5 @@ docker-compose.yaml
 .DS_Store
 *.DS_Store
 .tool-versions
+.DS_Store
+pnpm-lock.yaml

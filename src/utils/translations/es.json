@@ -7,6 +7,8 @@
   "cw.inbox.disconnect": "🚨 Instancia *{{inboxName}}* desconectado de Whatsapp.",
   "cw.inbox.alreadyConnected": "🚨 La instancia {{inboxName}} está conectada.",
   "cw.inbox.clearCache": "✅ Caché de la instancia {{inboxName}} borrada.",
+  "cw.inbox.noTypebot": "⚠️ Instancia *{{inboxName}}* no bot configurado.",
+  "cw.inbox.typebotPaused": "⚠️ Bot pausado *{{number}}*.",
   "cw.inbox.notFound": "⚠️ Instancia {{inboxName}} no encontrada.",
   "cw.inbox.status": "⚠️ Estado de la instancia {{inboxName}}: *{{state}}*.",
   "cw.import.startImport": "💬 Empezando a importar mensajes. Espere por favor...",

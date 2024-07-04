@@ -7,6 +7,8 @@
   "cw.inbox.disconnect": "🚨 Disconnecting WhatsApp from inbox *{{inboxName}}*.",
   "cw.inbox.alreadyConnected": "🚨 {{inboxName}} instance is connected.",
   "cw.inbox.clearCache": "✅ {{inboxName}} instance cache cleared.",
+  "cw.inbox.noTypebot": "⚠️ *{{inboxName}}* instance doesn't have the bot configured.",
+  "cw.inbox.typebotPaused": "⚠️ Bot paused for *{{number}}*.",
   "cw.inbox.notFound": "⚠️ {{inboxName}} instance not found.",
   "cw.inbox.status": "⚠️ {{inboxName}} instance status: *{{state}}*.",
   "cw.import.startImport": "💬 Starting to import messages. Please wait...",

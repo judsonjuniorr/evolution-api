@@ -444,8 +444,7 @@ export class ChatwootService {
     const searchableFields = this.getSearchableFields();
 
     // eslint-disable-next-line prettier/prettier
-    if(contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')){
-
+    if (contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')) {
       const contact = this.mergeBrazilianContacts(contacts);
       if (contact) {
         return contact;
@@ -834,6 +833,8 @@ export class ChatwootService {
       encoding: string;
       filename: string;
     }[],
+    conversationId?: number,
+    isPrivateMessage?: boolean,
   ) {
     this.logger.verbose('create bot message to instance: ' + instance.instanceName);
 
@@ -870,8 +871,9 @@ export class ChatwootService {
     this.logger.verbose('create message in chatwoot');
     const message = await client.messages.create({
       accountId: this.provider.account_id,
-      conversationId: conversation.id,
+      conversationId: conversationId ?? conversation.id,
       data: {
+        private: isPrivateMessage || false,
         content: content,
         message_type: messageType,
         attachments: attachments,
@@ -1168,15 +1170,6 @@ export class ChatwootService {
         this.cache.delete(keyToDelete);
       }
 
-      this.logger.verbose('check if is bot');
-      if (
-        !body?.conversation ||
-        body.private ||
-        (body.event === 'message_updated' && !body.content_attributes?.deleted)
-      ) {
-        return { message: 'bot' };
-      }
-
       this.logger.verbose('check if is group');
       const chatId =
         body.conversation.meta.sender?.phone_number?.replace('+', '') || body.conversation.meta.sender?.identifier;
@@ -1191,6 +1184,52 @@ export class ChatwootService {
 
       const senderName = body?.conversation?.messages[0]?.sender?.available_name || body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
+
+      this.logger.verbose('check if is bot');
+      if (
+        !body?.conversation ||
+        body.private ||
+        (body.event === 'message_updated' && !body.content_attributes?.deleted)
+      ) {
+        if (body.event === 'message_created' && messageReceived.trim().toLowerCase() === '/stopbot') {
+          this.logger.verbose('command stopbot found');
+          const typebot = await waInstance.findTypebot();
+          if (!typebot || !typebot.enabled) {
+            await this.createBotMessage(
+              instance,
+              i18next.t('cw.inbox.noTypebot', { inboxName: body.inbox.name }),
+              'outgoing',
+              [],
+              body.conversation.id,
+              true,
+            );
+          } else {
+            const remoteJid = body.conversation.meta.sender?.identifier ?? chatId;
+            const typebot = await waInstance.typebotService.find({
+              instanceName: waInstance.instanceName,
+            });
+            const sessionActive =
+              typebot?.sessions?.find((session) => session.remoteJid.includes(remoteJid))?.status === 'opened';
+            if (sessionActive) {
+              await waInstance.typebotService.changeStatus(
+                { instanceName: waInstance.instanceName },
+                { remoteJid: remoteJid, status: 'paused' },
+              );
+            }
+
+            await this.createBotMessage(
+              instance,
+              i18next.t('cw.inbox.typebotPaused', { number: chatId }),
+              'outgoing',
+              [],
+              body.conversation.id,
+              true,
+            );
+          }
+        }
+
+        return { message: 'bot' };
+      }
 
       this.logger.verbose('check if is a message deletion');
       if (body.event === 'message_updated' && body.content_attributes?.deleted) {
