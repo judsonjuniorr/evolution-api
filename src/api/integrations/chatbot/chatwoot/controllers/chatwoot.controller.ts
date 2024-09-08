@@ -82,18 +82,11 @@ export class ChatwootController {
   }
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
-    console.time('receiveWebhook');
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
 
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
     const chatwootService = new ChatwootService(waMonitor, this.configService, this.prismaRepository, chatwootCache);
 
-    const webhookResponse = await chatwootService.receiveWebhook(instance, data);
-
-    console.log('webhookResponse', webhookResponse);
-
-    console.timeEnd('receiveWebhook');
-
-    return webhookResponse;
+    return chatwootService.receiveWebhook(instance, data);
   }
 }
