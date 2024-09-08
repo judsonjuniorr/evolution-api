@@ -1096,7 +1096,7 @@ export class ChatwootService {
       return;
     }
 
-    await client.messages.create({
+    client.messages.create({
       accountId: this.provider.accountId,
       conversationId: conversation,
       data: {
@@ -1291,7 +1291,7 @@ export class ChatwootService {
                 options,
               );
               if (!messageSent && body.conversation?.id) {
-                await this.onSendMessageError(instance, body.conversation?.id);
+                this.onSendMessageError(instance, body.conversation?.id);
               }
 
               await this.updateChatwootMessageId(
@@ -1308,7 +1308,6 @@ export class ChatwootService {
                 instance,
               );
             }
-            this.logger.info('Attachment sent');
           } else {
             const data: SendTextDto = {
               number: chatId,
@@ -1343,7 +1342,6 @@ export class ChatwootService {
                 },
                 instance,
               );
-              this.logger.info('Message sent');
             } catch (error) {
               if (!messageSent && body.conversation?.id) {
                 this.onSendMessageError(instance, body.conversation?.id, error.toString());
@@ -1372,7 +1370,7 @@ export class ChatwootService {
               participant?: string;
             };
 
-            await waInstance?.markMessageAsRead({
+            waInstance?.markMessageAsRead({
               readMessages: [
                 {
                   id: key.id,

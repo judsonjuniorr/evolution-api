@@ -87,9 +87,6 @@ export class ChatwootController {
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
     const chatwootService = new ChatwootService(waMonitor, this.configService, this.prismaRepository, chatwootCache);
 
-    const webhookData = await chatwootService.receiveWebhook(instance, data);
-
-    console.log({ webhookData });
-    return webhookData;
+    return chatwootService.receiveWebhook(instance, data);
   }
 }
