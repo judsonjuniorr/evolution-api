@@ -1120,6 +1120,9 @@ export class ChatwootService {
         return null;
       }
 
+      this.logger.log('Received webhook from Chatwoot');
+      this.logger.log(body);
+
       if (
         this.provider.reopenConversation === false &&
         body.event === 'conversation_status_changed' &&
@@ -1411,6 +1414,8 @@ export class ChatwootService {
         sendTelemetry('/message/sendText');
 
         await waInstance?.textMessage(data);
+        this.logger.log('Template message sent');
+        this.logger.log(data);
       }
 
       return { message: 'bot' };
