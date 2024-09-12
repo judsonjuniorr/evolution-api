@@ -4,6 +4,8 @@
 
 * Define a global proxy to be used if the instance does not have one
 * Save is on whatsapp on the database
+* Add headers to the instance's webhook registration
+* Debounce message break is now "\n" instead of white space
 
 ### Fixed
 
@@ -11,6 +13,11 @@
 * Missing autoCreate chatwoot in instance create
 * Fixed bugs in the frontend, on the event screens
 * Fixed use chatwoot with evolution channel
+* Fix chatwoot reply quote with Cloud API
+* Use exchange name from .env on RabbitMQ
+* Fixed chatwoot screen
+* It is now possible to send images via the Evolution Channel
+* Removed "version" from docker-compose as it is obsolete (https://dev.to/ajeetraina/do-we-still-use-version-in-compose-3inp)
 
 # 2.1.0 (2024-08-26 15:33)
 

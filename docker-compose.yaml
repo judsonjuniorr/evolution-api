@@ -1,5 +1,3 @@
-version: '3.3'
-
 services:
   redis:
     image: redis:latest
@@ -34,6 +32,7 @@ services:
 volumes:
   postgres_data:
   evolution_redis:
+
 
 networks:
   evolution-net:
