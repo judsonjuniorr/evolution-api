@@ -56,7 +56,7 @@ export class ProxyController {
         logger.error('testProxy error: ' + error.response.data);
       } else {
         logger.error('testProxy error: ');
-        logger.error(error.message);
+        logger.error(error.message ?? error);
       }
       return false;
     }
