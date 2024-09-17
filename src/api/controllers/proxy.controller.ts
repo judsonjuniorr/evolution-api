@@ -54,10 +54,9 @@ export class ProxyController {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data) {
         logger.error('testProxy error: ' + error.response.data);
-      } else if (axios.isAxiosError(error)) {
-        logger.error('testProxy error: ');
       } else {
         logger.error('testProxy error: ');
+        logger.error(error.message);
       }
       return false;
     }
