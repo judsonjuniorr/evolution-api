@@ -45,9 +45,12 @@ export class ProxyController {
 
   public async testProxy(proxy: ProxyDto) {
     try {
-      const serverIp = await axios.get('https://icanhazip.com/');
+      const serverIp = await axios.get('https://icanhazip.com/', {
+        timeout: 5000,
+      });
       const response = await axios.get('https://icanhazip.com/', {
         httpsAgent: makeProxyAgent(proxy),
+        timeout: 5000,
       });
 
       return response?.data !== serverIp?.data;
