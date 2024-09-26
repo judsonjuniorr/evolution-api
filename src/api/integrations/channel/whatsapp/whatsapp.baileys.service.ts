@@ -118,7 +118,7 @@ import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 import FileType from 'file-type';
 import ffmpeg from 'fluent-ffmpeg';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { readFile, unlink, writeFile } from 'fs/promises';
 import Long from 'long';
 import mime from 'mime';
@@ -2551,7 +2551,7 @@ export class BaileysStartupService extends ChannelStartupService {
         ffmpeg(inputFilePath)
           .format('ogg')
           .noVideo()
-          .audioCodec('libvorbis')
+          .audioCodec('libopus')
           .addOutputOption('-avoid_negative_ts', 'make_zero')
           .audioChannels(1)
           .on('error', async (error) => {
