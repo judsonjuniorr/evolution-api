@@ -312,6 +312,52 @@ export class BaileysStartupService extends ChannelStartupService {
       });
     }
 
+    if (connection === 'open') {
+      this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
+      try {
+        const profilePic = await this.profilePicture(this.instance.wuid);
+        this.instance.profilePictureUrl = profilePic.profilePictureUrl;
+      } catch (error) {
+        this.instance.profilePictureUrl = null;
+      }
+      const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
+      const formattedName = this.instance.name;
+      this.logger.info(
+        `
+        ┌──────────────────────────────┐
+        │    CONNECTED TO WHATSAPP     │
+        └──────────────────────────────┘`.replace(/^ +/gm, '  '),
+      );
+      this.logger.info(
+        `
+        wuid: ${formattedWuid}
+        name: ${formattedName}
+      `,
+      );
+
+      await this.prismaRepository.instance.update({
+        where: { id: this.instanceId },
+        data: {
+          ownerJid: this.instance.wuid,
+          profileName: (await this.getProfileName()) as string,
+          profilePicUrl: this.instance.profilePictureUrl,
+          connectionStatus: 'open',
+        },
+      });
+
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+        this.chatwootService.eventWhatsapp(
+          Events.CONNECTION_UPDATE,
+          { instanceName: this.instance.name, instanceId: this.instanceId },
+          {
+            instance: this.instance.name,
+            status: 'open',
+          },
+        );
+        this.syncChatwootLostMessages();
+      }
+    }
+
     if (connection) {
       this.stateConnection = {
         state: connection,
@@ -363,52 +409,6 @@ export class BaileysStartupService extends ChannelStartupService {
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
-      }
-    }
-
-    if (connection === 'open') {
-      this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
-      try {
-        const profilePic = await this.profilePicture(this.instance.wuid);
-        this.instance.profilePictureUrl = profilePic.profilePictureUrl;
-      } catch (error) {
-        this.instance.profilePictureUrl = null;
-      }
-      const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
-      const formattedName = this.instance.name;
-      this.logger.info(
-        `
-        ┌──────────────────────────────┐
-        │    CONNECTED TO WHATSAPP     │
-        └──────────────────────────────┘`.replace(/^ +/gm, '  '),
-      );
-      this.logger.info(
-        `
-        wuid: ${formattedWuid}
-        name: ${formattedName}
-      `,
-      );
-
-      await this.prismaRepository.instance.update({
-        where: { id: this.instanceId },
-        data: {
-          ownerJid: this.instance.wuid,
-          profileName: (await this.getProfileName()) as string,
-          profilePicUrl: this.instance.profilePictureUrl,
-          connectionStatus: 'open',
-        },
-      });
-
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-        this.chatwootService.eventWhatsapp(
-          Events.CONNECTION_UPDATE,
-          { instanceName: this.instance.name, instanceId: this.instanceId },
-          {
-            instance: this.instance.name,
-            status: 'open',
-          },
-        );
-        this.syncChatwootLostMessages();
       }
     }
   }
