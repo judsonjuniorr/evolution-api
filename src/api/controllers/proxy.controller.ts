@@ -45,19 +45,21 @@ export class ProxyController {
 
   public async testProxy(proxy: ProxyDto) {
     try {
-      const serverIp = await axios.get('https://icanhazip.com/');
+      const serverIp = await axios.get('https://icanhazip.com/', {
+        timeout: 5000,
+      });
       const response = await axios.get('https://icanhazip.com/', {
         httpsAgent: makeProxyAgent(proxy),
+        timeout: 5000,
       });
 
       return response?.data !== serverIp?.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data) {
         logger.error('testProxy error: ' + error.response.data);
-      } else if (axios.isAxiosError(error)) {
-        logger.error('testProxy error: ');
       } else {
         logger.error('testProxy error: ');
+        console.error(error);
       }
       return false;
     }

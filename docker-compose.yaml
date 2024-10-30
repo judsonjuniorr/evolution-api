@@ -1,33 +1,17 @@
 services:
-  api:
-    container_name: evolution_api
-    image: atendai/evolution-api:homolog
-    restart: always
-    depends_on:
-      - redis
-      - postgres
-    ports:
-      - 8080:8080
-    volumes:
-      - evolution_instances:/evolution/instances
-    networks:
-      - evolution-net
-    env_file:
-      - .env
-    expose:
-      - 8080
-
   redis:
     image: redis:latest
-    networks:
-      - evolution-net
     container_name: redis
     command: >
       redis-server --port 6379 --appendonly yes
+    networks:
+      - evolution-net
     volumes:
       - evolution_redis:/data
     ports:
       - 6379:6379
+    expose:
+      - 6379
 
   postgres:
     container_name: postgres
@@ -46,9 +30,8 @@ services:
       - 5432
 
 volumes:
-  evolution_instances:
-  evolution_redis:
   postgres_data:
+  evolution_redis:
 
 
 networks:

@@ -126,14 +126,16 @@ import { spawn } from 'child_process';
 import { isArray, isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
+import FileType from 'file-type';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
 import { readFileSync } from 'fs';
+import { readFile, unlink, writeFile } from 'fs/promises';
 import Long from 'long';
 import mime from 'mime';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
-import { release } from 'os';
+import { release, tmpdir } from 'os';
 import { join } from 'path';
 import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
@@ -382,6 +384,51 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       });
     }
+    if (connection === 'open') {
+      this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
+      try {
+        const profilePic = await this.profilePicture(this.instance.wuid);
+        this.instance.profilePictureUrl = profilePic.profilePictureUrl;
+      } catch (error) {
+        this.instance.profilePictureUrl = null;
+      }
+      const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
+      const formattedName = this.instance.name;
+      this.logger.info(
+        `
+        ┌──────────────────────────────┐
+        │    CONNECTED TO WHATSAPP     │
+        └──────────────────────────────┘`.replace(/^ +/gm, '  '),
+      );
+      this.logger.info(
+        `
+        wuid: ${formattedWuid}
+        name: ${formattedName}
+      `,
+      );
+
+      await this.prismaRepository.instance.update({
+        where: { id: this.instanceId },
+        data: {
+          ownerJid: this.instance.wuid,
+          profileName: (await this.getProfileName()) as string,
+          profilePicUrl: this.instance.profilePictureUrl,
+          connectionStatus: 'open',
+        },
+      });
+
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+        this.chatwootService.eventWhatsapp(
+          Events.CONNECTION_UPDATE,
+          { instanceName: this.instance.name, instanceId: this.instanceId },
+          {
+            instance: this.instance.name,
+            status: 'open',
+          },
+        );
+        this.syncChatwootLostMessages();
+      }
+    }
 
     if (connection) {
       this.stateConnection = {
@@ -434,52 +481,6 @@ export class BaileysStartupService extends ChannelStartupService {
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
-      }
-    }
-
-    if (connection === 'open') {
-      this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
-      try {
-        const profilePic = await this.profilePicture(this.instance.wuid);
-        this.instance.profilePictureUrl = profilePic.profilePictureUrl;
-      } catch (error) {
-        this.instance.profilePictureUrl = null;
-      }
-      const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
-      const formattedName = this.instance.name;
-      this.logger.info(
-        `
-        ┌──────────────────────────────┐
-        │    CONNECTED TO WHATSAPP     │
-        └──────────────────────────────┘`.replace(/^ +/gm, '  '),
-      );
-      this.logger.info(
-        `
-        wuid: ${formattedWuid}
-        name: ${formattedName}
-      `,
-      );
-
-      await this.prismaRepository.instance.update({
-        where: { id: this.instanceId },
-        data: {
-          ownerJid: this.instance.wuid,
-          profileName: (await this.getProfileName()) as string,
-          profilePicUrl: this.instance.profilePictureUrl,
-          connectionStatus: 'open',
-        },
-      });
-
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-        this.chatwootService.eventWhatsapp(
-          Events.CONNECTION_UPDATE,
-          { instanceName: this.instance.name, instanceId: this.instanceId },
-          {
-            instance: this.instance.name,
-            status: 'open',
-          },
-        );
-        this.syncChatwootLostMessages();
       }
     }
   }
@@ -2853,12 +2854,18 @@ export class BaileysStartupService extends ChannelStartupService {
           const outputBuffer = Buffer.concat(chunks);
           resolve(outputBuffer);
         });
+        outputAudioStream.on('data', (chunk) => chunks.push(chunk));
+        outputAudioStream.on('end', () => {
+          const outputBuffer = Buffer.concat(chunks);
+          resolve(outputBuffer);
+        });
 
         outputAudioStream.on('error', (error) => {
           console.log('error', error);
           reject(error);
         });
 
+        ffmpeg.setFfmpegPath(ffmpegPath.path);
         ffmpeg.setFfmpegPath(ffmpegPath.path);
 
         ffmpeg(inputAudioStream)
