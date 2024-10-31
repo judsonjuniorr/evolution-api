@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Chat" ADD COLUMN     "unreadMessages" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "chats" ADD COLUMN     "unread_messages" INTEGER NOT NULL DEFAULT 0;

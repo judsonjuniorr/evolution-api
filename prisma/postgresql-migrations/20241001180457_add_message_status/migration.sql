@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Message" ADD COLUMN     "status" INTEGER;
+ALTER TABLE "messages" ADD COLUMN     "status" INTEGER;

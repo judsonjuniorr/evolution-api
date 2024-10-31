@@ -1,31 +1,31 @@
 -- AlterTable
-ALTER TABLE "Dify" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "difys" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "DifySetting" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "dify_settings" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "EvolutionBot" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "evolution_bots" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "EvolutionBotSetting" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "evolution_bot_settings" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "Flowise" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "flowises" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "FlowiseSetting" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "flowise_settings" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "OpenaiBot" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "openai_bots" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;
 
 -- AlterTable
-ALTER TABLE "OpenaiSetting" ADD COLUMN     "splitMessages" BOOLEAN DEFAULT false,
-ADD COLUMN     "timePerChar" INTEGER DEFAULT 50;
+ALTER TABLE "openai_settings" ADD COLUMN     "split_messages" BOOLEAN DEFAULT false,
+ADD COLUMN     "time_per_char" INTEGER DEFAULT 50;

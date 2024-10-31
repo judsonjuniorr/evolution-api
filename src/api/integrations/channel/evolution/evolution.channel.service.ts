@@ -474,7 +474,7 @@ export class EvolutionStartupService extends ChannelStartupService {
     if (file?.buffer) {
       mediaData.audio = file.buffer.toString('base64');
     } else {
-      console.error('El archivo o buffer no est� definido correctamente.');
+      console.error('Invalid file buffer.');
       throw new Error('File or buffer is undefined.');
     }
 
@@ -547,9 +547,6 @@ export class EvolutionStartupService extends ChannelStartupService {
   }
   public async fetchProfile() {
     throw new BadRequestException('Method not available on Evolution Channel');
-  }
-  public async offerCall() {
-    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async sendPresence() {
     throw new BadRequestException('Method not available on Evolution Channel');

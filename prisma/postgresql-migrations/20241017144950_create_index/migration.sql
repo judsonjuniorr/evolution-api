@@ -1,26 +1,26 @@
 -- CreateIndex
-CREATE INDEX "Chat_instanceId_idx" ON "Chat"("instanceId");
+CREATE INDEX "Chat_instanceId_idx" ON "chats"("instance_id");
 
 -- CreateIndex
-CREATE INDEX "Chat_remoteJid_idx" ON "Chat"("remoteJid");
+CREATE INDEX "Chat_remoteJid_idx" ON "chats"("remote_jid");
 
 -- CreateIndex
-CREATE INDEX "Contact_remoteJid_idx" ON "Contact"("remoteJid");
+CREATE INDEX "Contact_remoteJid_idx" ON "contacts"("remote_jid");
 
 -- CreateIndex
-CREATE INDEX "Contact_instanceId_idx" ON "Contact"("instanceId");
+CREATE INDEX "Contact_instanceId_idx" ON "contacts"("instance_id");
 
 -- CreateIndex
-CREATE INDEX "Message_instanceId_idx" ON "Message"("instanceId");
+CREATE INDEX "Message_instanceId_idx" ON "messages"("instance_id");
 
 -- CreateIndex
-CREATE INDEX "MessageUpdate_instanceId_idx" ON "MessageUpdate"("instanceId");
+CREATE INDEX "MessageUpdate_instanceId_idx" ON "message_updates"("instance_id");
 
 -- CreateIndex
-CREATE INDEX "MessageUpdate_messageId_idx" ON "MessageUpdate"("messageId");
+CREATE INDEX "MessageUpdate_messageId_idx" ON "message_updates"("message_id");
 
 -- CreateIndex
-CREATE INDEX "Setting_instanceId_idx" ON "Setting"("instanceId");
+CREATE INDEX "Setting_instanceId_idx" ON "settings"("instance_id");
 
 -- CreateIndex
-CREATE INDEX "Webhook_instanceId_idx" ON "Webhook"("instanceId");
+CREATE INDEX "Webhook_instanceId_idx" ON "webhooks"("instance_id");

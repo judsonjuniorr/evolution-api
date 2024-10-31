@@ -1,3 +1,5 @@
+import { readFile, unlink, writeFile } from 'node:fs/promises';
+
 import { OfferCallDto } from '@api/dto/call.dto';
 import {
   ArchiveChatDto,
@@ -130,7 +132,6 @@ import FileType from 'file-type';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
 import { readFileSync } from 'fs';
-import { readFile, unlink, writeFile } from 'fs/promises';
 import Long from 'long';
 import mime from 'mime';
 import NodeCache from 'node-cache';
@@ -2802,6 +2803,12 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
+  private generateTempFileName(extension: string): string {
+    const tempDir = tmpdir();
+    const randomName = randomBytes(16).toString('hex');
+    return join(tempDir, `${randomName}.${extension}`);
+  }
+
   public async processAudio(audio: string): Promise<Buffer> {
     if (process.env.API_AUDIO_CONVERTER) {
       this.logger.verbose('Using audio converter API');
@@ -2827,59 +2834,80 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Audio converted');
       return Buffer.from(data.audio, 'base64');
     } else {
-      let inputAudioStream: PassThrough;
+      let inputExtension = 'mp3'; // Default extension
+      let audioData: Buffer;
 
       if (isURL(audio)) {
-        const timestamp = new Date().getTime();
-        const url = `${audio}?timestamp=${timestamp}`;
+        const url = new URL(audio);
+        const fullURL = url.toString();
 
-        const config: any = {
-          responseType: 'stream',
-        };
-
-        const response = await axios.get(url, config);
-        inputAudioStream = response.data.pipe(new PassThrough());
+        const response = await axios.get(fullURL, { responseType: 'arraybuffer' });
+        audioData = Buffer.from(response.data);
       } else {
-        const audioBuffer = Buffer.from(audio, 'base64');
-        inputAudioStream = new PassThrough();
-        inputAudioStream.end(audioBuffer);
+        audioData = Buffer.from(audio, 'base64');
       }
 
-      return new Promise((resolve, reject) => {
-        const outputAudioStream = new PassThrough();
-        const chunks: Buffer[] = [];
+      const inputAudioStream = new PassThrough();
+      inputAudioStream.end(audioData);
+      const fileTypeResult = await FileType.fromBuffer(audioData);
+      if (fileTypeResult) {
+        inputExtension = fileTypeResult.ext;
+      }
 
-        outputAudioStream.on('data', (chunk) => chunks.push(chunk));
-        outputAudioStream.on('end', () => {
-          const outputBuffer = Buffer.concat(chunks);
-          resolve(outputBuffer);
-        });
-        outputAudioStream.on('data', (chunk) => chunks.push(chunk));
-        outputAudioStream.on('end', () => {
-          const outputBuffer = Buffer.concat(chunks);
-          resolve(outputBuffer);
-        });
+      const inputFilePath = this.generateTempFileName(inputExtension);
+      const outputFilePath = this.generateTempFileName('ogg');
+      try {
+        await writeFile(inputFilePath, audioData);
 
-        outputAudioStream.on('error', (error) => {
-          console.log('error', error);
-          reject(error);
-        });
+        return new Promise<Buffer>((resolve, reject) => {
+          const outputAudioStream = new PassThrough();
+          const chunks: Buffer[] = [];
 
-        ffmpeg.setFfmpegPath(ffmpegPath.path);
-        ffmpeg.setFfmpegPath(ffmpegPath.path);
+          outputAudioStream.on('data', (chunk) => chunks.push(chunk));
+          outputAudioStream.on('end', () => {
+            const outputBuffer = Buffer.concat(chunks);
+            resolve(outputBuffer);
+          });
 
-        ffmpeg(inputAudioStream)
-          .outputFormat('ogg')
-          .noVideo()
-          .audioCodec('libopus')
-          .addOutputOptions('-avoid_negative_ts make_zero')
-          .audioChannels(1)
-          .pipe(outputAudioStream, { end: true })
-          .on('error', function (error) {
-            console.log('error', error);
+          outputAudioStream.on('error', (error) => {
+            console.error('Output Stream Error:', error);
             reject(error);
           });
-      });
+
+          ffmpeg.setFfmpegPath(ffmpegPath.path);
+
+          ffmpeg(inputFilePath)
+            .format('ogg')
+            .noVideo()
+            .audioCodec('libopus')
+            .addOutputOption('-avoid_negative_ts', 'make_zero')
+            .audioChannels(1)
+            .on('error', async (error) => {
+              console.error('FFmpeg Error:', error);
+              await unlink(inputFilePath).catch(() => {});
+              await unlink(outputFilePath).catch(() => {});
+              reject(error);
+            })
+            .on('end', async () => {
+              try {
+                // Read the output file into a buffer
+                const outputData = await readFile(outputFilePath);
+                resolve(outputData);
+              } catch (readError) {
+                reject(readError);
+              } finally {
+                // Delete temporary files
+                await unlink(inputFilePath).catch(() => {});
+                await unlink(outputFilePath).catch(() => {});
+              }
+            })
+            .save(outputFilePath);
+        });
+      } catch (error) {
+        await unlink(inputFilePath).catch(() => {});
+        await unlink(outputFilePath).catch(() => {});
+        throw error;
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 -- AlterTable
-ALTER TABLE "Message"
+ALTER TABLE "messages"
 ALTER COLUMN "status"
 SET
     DATA TYPE VARCHAR(30);
 
-UPDATE "Message" SET "status" = 'PENDING';
+UPDATE "messages" SET "status" = 'PENDING';
